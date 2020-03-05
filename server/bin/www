@@ -5,21 +5,26 @@
  */
 
 var app = require('../app');
+const appToken = require('../app-token');
 var debug = require('debug')('server:server');
 var http = require('http');
 
 /**
- * Get port from environment and store in Express.
+ * 业务服务端口，默认3003
  */
-
-var port = normalizePort(process.env.PORT || '3000');
+var port = normalizePort(process.env.PORT || '3003');
 app.set('port', port);
+/**
+ * 中控服务端口，默认3309
+ */
+const tokenPort = normalizePort(process.env.TOKEN_PORT || '3309');
+appToken.set('port', tokenPort);
 
 /**
- * Create HTTP server.
+ * 创建 HTTP & access_token 服务器
  */
-
-var server = http.createServer(app);
+const server = http.createServer(app);
+const tokenServer = http.createServer(appToken);
 
 /**
  * Listen on provided port, on all network interfaces.
@@ -27,8 +32,11 @@ var server = http.createServer(app);
 
 server.listen(port);
 server.on('error', onError);
-server.on('listening', onListening);
+server.on('listening', function () { onListening(server) });
 
+tokenServer.listen(tokenPort);
+tokenServer.on('error', onError);
+tokenServer.on('listening', function () { onListening(tokenServer) });
 /**
  * Normalize a port into a number, string, or false.
  */
@@ -81,8 +89,8 @@ function onError(error) {
  * Event listener for HTTP server "listening" event.
  */
 
-function onListening() {
-  var addr = server.address();
+function onListening(serverObj) {
+  var addr = serverObj.address();
   var bind = typeof addr === 'string'
     ? 'pipe ' + addr
     : 'port ' + addr.port;
